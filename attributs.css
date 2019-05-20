@@ -1,0 +1,27 @@
+.rouge{
+    color:red;
+}
+
+.bleu{
+    color:blue;
+}
+
+.vert{
+    color:green;
+}
+
+.noir{
+    color:black;
+}
+
+.gras{
+    font-style:bold;
+}
+
+.souligne{
+    font-style:underline;
+}
+
+.italique{
+    font-style:italic;
+}

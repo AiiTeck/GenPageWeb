@@ -8,7 +8,7 @@
 #           Cadre d'utilisation: Generer la page d un article sur un site web d actualite par exemple ...
 # Update à faire /!\ :
 #      Ajouter un bouton supprimer afin de supprimer le paragraphe
-#       Ajouter la gestion des couleurs etc...
+#      Ajouter la gestion des couleurs etc...
 
 # Imports
 import pygame
@@ -31,6 +31,7 @@ CFondActif=(255,255,255) # blanc - nom de variable a conserver
 
 # Police d ecriture
 Police=pygame.font.SysFont("Avenir",32) # nom de variable a conserver
+PoliceXL=pygame.font.SysFont("Avenir",52)
 
 
 # Variable
@@ -43,8 +44,20 @@ attribut = {
     (0,0,255) : "bleu"
 }
 
+lettreCoul = { #permet de donner la couleur en fonction du msg du boutton
+    "B":(0,0,255),
+    "V": (0,255,0),
+    "R":(255,0,0)
+}
+
+lettreForme = { # rang du parametre dans "set" -> Boitetexte
+    "I":1,
+    "G":2,
+    "S":3
+}
+
 # Creation Fenetre
-Fenetre = pygame.display.set_mode((0,0), pygame.RESIZABLE)
+Fenetre = pygame.display.set_mode((1280,720), pygame.RESIZABLE)
 Fenetre.fill(CouleurArrierePlan)
 
 
@@ -77,7 +90,33 @@ class BoiteTexte:
             False, # Italique
             False, # Gras
             False, # Souligne 
-            ]
+        ]
+
+        self.specBut = [
+            Bouton(
+            pos = (self.pos[0], self.pos[1]+self.dim[1]+5),
+            msg = "",
+            couleur = self.set[0]
+            ),
+        
+            Bouton(
+            pos = (self.pos[0] +55, self.pos[1]+self.dim[1]+5),
+            msg = "I",
+            couleur = (0,255,0)
+            ),
+
+            Bouton(
+            pos = (self.pos[0] + 110, self.pos[1]+self.dim[1]+5),
+            msg = "G",
+            couleur = (0,255,0)
+            ),
+
+            Bouton(
+            pos = (self.pos[0] + 165, self.pos[1]+self.dim[1]+5),
+            msg = "S",
+            couleur = (0,255,0)
+            ),
+        ]
 
     def __contains__(self,pos):
         """(int, int) in BoiteTexte -> bool
@@ -109,39 +148,28 @@ class BoiteTexte:
         if self.txt == "":self.txt=self.msg #Permet de remettre l instruction si la zone de saisir est vide...
         self.afficher()
 
-    def dicotomie(self, borneInf, borneSup):
-
-        Texte=Police.render(self.txt[borneInf:borneSup], True, CPolice)
-
-        if Texte.get_width() > self.dim[0]:
-                borneSup-=1
-                return borneInf, borneSup
-        else:
-            if Police.render(self.txt[borneInf:borneSup+1], True, CPolice).get_width() < self.dim[0]:
-                print(self.txt[borneInf:borneSup])
-                self.lignes.append(Ligne(self.txt[borneInf:borneSup]))
-                return borneSup+1 , len(self.txt) 
-            else: 
-                borneSup+=1
-                return borneInf, borneSup
-
     def corrigeLigne(self):
         Texte=Police.render(self.txt, True, CPolice) # Rendu du texte
         self.lignes = []
 
         if Texte.get_width() < self.dim[0]: self.lignes.append(Ligne(self.txt))
         else:
-            borneInf = 0
-            borneSup = int((len(self.txt)-1)/2)
-            sommeTxt = ""
-            while sommeTxt != self.txt:   
-                borneInf, borneSup = self.dicotomie(borneInf, borneSup)
-                for txt in self.lignes:
-                        sommeTxt+=txt.txt
-                print(sommeTxt)
+            rangD = 0 # Ne doit pas etre reinitialise
+            verif = "" # Initialisation, permet de verifier si tout le texte est coupe
+            while verif != self.txt:
+                rangF = len(self.txt)-1 # doit etre reinitialiser a chaque tour
+                while Texte.get_width() > self.dim[0]:
+                    rangF -= 1
+                    Texte = Police.render(self.txt[rangD:rangF], True, CPolice)
+                self.lignes.append(self.txt[rangD:rangF])
+                verif += self.txt[rangD:rangF]
+                rangD = rangF
+
 
     def afficher(self):
         """Actualise l affichage du champ texte"""
+
+        #self.corrigeLigne()
         
         #self.dim[1] = self.dim[1]*len(self.lignes)
         if self.actif: CoulAP=CFondActif # Def couleur de fond
@@ -159,9 +187,21 @@ class BoiteTexte:
         pygame.draw.rect(Fenetre, CoulAP, bordureRect,0) # Dessine le fond
         pygame.draw.rect(Fenetre, CPolice, bordureRect, 1) # Dessine les bords
 
+        for but in range(len(self.specBut)):
+            if but != 0:
+                if self.set[but] == True:
+                    self.specBut[but].couleur = (0,255,0)
+                    self.specBut[but].afficher()
+                else:
+                    self.specBut[but].couleur = CFond
+                    self.specBut[but].afficher()
+            else:
+                self.specBut[but].couleur = self.set[0]
+                self.specBut[but].afficher()
+
         #for compteur in range(0, len(self.lignes)):
-            #position = (self.pos[0], self.pos[1]+compteur*self.dimFixe[1])
-            #self.lignes[compteur].afficher(position)
+        #    position = (self.pos[0], self.pos[1]+compteur*self.dimFixe[1])
+        #    self.lignes[compteur].afficher(position)
 
         Fenetre.blit(Texte, (self.pos[0], self.pos[1]))
           
@@ -177,9 +217,7 @@ class BoiteTexte:
             for entree in pygame.event.get():
                 #Actions Souris
                 if entree.type==pygame.MOUSEBUTTONDOWN: 
-                    if pygame.mouse.get_pressed()[0]==1:
-                        
-                        
+                    if pygame.mouse.get_pressed()[0]==1: 
                         
                         if not pygame.mouse.get_pos() in self: # Clic en dehors -> Desactivation
                             self.desactiver()
@@ -226,6 +264,7 @@ class Bouton:
         self.dim=dim
         self.msg=msg
         self.couleur = couleur
+        self.ParametresBte = (self.pos[0], self.pos[1], self.dim[0]+10, self.dim[1]) # Rect de la boite, avec marge sur la largueur
 
     def __contains__(self,pos):
         """(int, int) in BoiteTexte -> bool
@@ -243,12 +282,11 @@ class Bouton:
 
     def afficher(self):
         """Actualise l affichage du champ texte"""
-        ParametresBte=(self.pos[0], self.pos[1], self.dim[0]+10, self.dim[1]) # Rect de la boite, avec marge sur la largueur
-
-        Rectangle=pygame.draw.rect(Fenetre, self.couleur, ParametresBte,0) # Dessine le fond
-        Bords=pygame.draw.rect(Fenetre, CPolice, ParametresBte, 1) # Dessine les bords
 
         Texte=Police.render(self.msg,True,CPolice) # Rendu du texte
+
+        Rectangle=pygame.draw.rect(Fenetre, self.couleur, self.ParametresBte,0) # Dessine le fond
+        Bords=pygame.draw.rect(Fenetre, CPolice, self.ParametresBte, 1) # Dessine les bords
 
         HTexte=Texte.get_rect()[3] #Hauteur du texte
 
@@ -274,12 +312,11 @@ def GenStyle(listParagraphes, typeC):
     paragraphesHtml = ""
     for paragraphe in listParagraphes:
         paragraphesHtml += '<'+typeC
-        print(attribut[paragraphe.set[0]])
-        paragraphesHtml += ' class = "'+str(attribut[paragraphe.set[0]])+'"'
-        if paragraphe.set[1] == True: paragraphesHtml += ' class = "italique"'
-        if paragraphe.set[2] == True: paragraphesHtml += ' class = "gras"'
-        if paragraphe.set[3] == True: paragraphesHtml += ' class = "souligne"'
-        paragraphesHtml += '>'+paragraphe.txt+'</'+typeC+'>'
+        paragraphesHtml += ' class = "'+str(attribut[paragraphe.set[0]])
+        if paragraphe.set[1] == True: paragraphesHtml += " italique"
+        if paragraphe.set[2] == True: paragraphesHtml += " gras"
+        if paragraphe.set[3] == True: paragraphesHtml += " souligne"
+        paragraphesHtml += '">'+paragraphe.txt+'</'+typeC+'>'
     return paragraphesHtml
 
 
@@ -290,9 +327,87 @@ def Ecriture(titre,listParagraphes):
     
     titreHtml = GenStyle([titre], "h1") # On passe une list de 1 objet sinon la boucle for parcours les lettres
     
-    codeHtml = enteteHtml+'<body>'+titreHtml+paragraphesHtml+'</body></html>'
+    codeHtml = enteteHtml+'<body>'+'<header>'+titreHtml+'</header>'+'<article>'+paragraphesHtml+'</article></body></html>'
     Enregistrer(codeHtml)
     return True
+
+
+def FenetrePrincipale():
+    #Def element
+    Titre = BoiteTexte(pos=(280, 10),msg="Saisissez le titre de la page !")
+    Titre.afficher()
+    
+    for but in coulBoutton:
+        but.afficher()
+    for but in styleBoutton:
+        but.afficher()
+    
+
+    AjtParagraphe=Bouton((10,600),(250,30),"Ajouter un paragraphe")
+    AjtParagraphe.afficher()
+
+    CreerPage = Bouton((10,650),(250,30),"Créer une page !")
+    CreerPage.afficher()
+
+    boiteActif = Titre
+
+    #Boucle Principale
+    continuer = True
+    while continuer:
+        for event in pygame.event.get():
+
+            if event.type==pygame.MOUSEBUTTONDOWN:
+                if pygame.mouse.get_pressed()[0]==1:
+
+                    # Va contenir tout les boutons et les boites
+                    if pygame.mouse.get_pos() in Titre: # --> Voir classe BoiteTexte -> __contains__
+                        boiteActif = Titre
+                        Titre.saisir()
+
+                    if pygame.mouse.get_pos() in AjtParagraphe:
+                        if listParagraphes == []:
+                            if Titre.txt != Titre.msg:
+                                listParagraphes.append(BoiteTexte(pos=(280,Titre.pos[1]+Titre.dim[1]+marge)))
+
+                        else:
+                            boitePreced = listParagraphes[len(listParagraphes)-1]
+                            if boitePreced.txt != boitePreced.msg:
+                                nellePos = (boitePreced.pos[0], (boitePreced.pos[1]+boitePreced.dim[1]+marge))
+                                listParagraphes.append(BoiteTexte(pos=nellePos))
+     
+                        for par in listParagraphes:
+                            par.afficher()
+
+                    for boiteP in listParagraphes:
+                        if pygame.mouse.get_pos() in boiteP:
+                            boiteActif = boiteP
+                            boiteP.saisir()
+                           
+                    if pygame.mouse.get_pos() in CreerPage:
+                        ecrit = Ecriture(Titre, listParagraphes)
+                        if ecrit == True:
+                            pygame.quit()
+                            quit()
+
+                    for butCoul in  coulBoutton:
+                        if pygame.mouse.get_pos() in butCoul:
+                            boiteActif.set[0] = lettreCoul[butCoul.msg]
+                            boiteActif.specBut[0].afficher()
+                            pygame.display.flip()
+                    
+                    for butForme in styleBoutton:
+                        if pygame.mouse.get_pos() in butForme:
+                            precEtat = boiteActif.set[lettreForme[butForme.msg]]
+                            if precEtat == True:
+                                boiteActif.set[lettreForme[butForme.msg]] = False
+                            elif precEtat == False:
+                                boiteActif.set[lettreForme[butForme.msg]] = True
+                        boiteActif.afficher()
+                        pygame.display.flip()
+                    
+            if event.type==pygame.QUIT:
+                continuer=False
+
 
 ########## Var supplementaires ....
 coulBoutton = [
@@ -333,58 +448,8 @@ styleBoutton = [
     ]
 ###########
 
-def FenetrePrincipale():
-    #Def element
-    Titre = BoiteTexte(pos=(280, 10),msg="Sasissez le titre de l'article")
-    Titre.afficher()
-    
-    for but in coulBoutton:
-        but.afficher()
-    for but in styleBoutton:
-        but.afficher()
-    
-
-    AjtParagraphe=Bouton((10,600),(250,30),"Ajouter un paragraphe")
-    AjtParagraphe.afficher()
-
-    CreerPage = Bouton((10,650),(250,30),"Créer une page !")
-    CreerPage.afficher()
-
-    #Boucle Principale
-    continuer = True
-    while continuer:
-        for event in pygame.event.get():
 
 
-            if event.type==pygame.MOUSEBUTTONDOWN:
-                if pygame.mouse.get_pressed()[0]==1:
-                    # Va contenir tout les boutons et les boites
-                    if pygame.mouse.get_pos() in Titre: # --> Voir classe BoiteTexte -> __contains__
-                        Titre.saisir()
 
-                    if pygame.mouse.get_pos() in AjtParagraphe:
-                        if listParagraphes == []:
-                            if Titre.txt != Titre.msg:
-                                listParagraphes.append(BoiteTexte(pos=(280,Titre.pos[1]+Titre.dim[1]+marge)))
-
-                        else:
-                            boitePreced = listParagraphes[len(listParagraphes)-1]
-                            if boitePreced.txt != boitePreced.msg:
-                                nellePos = (boitePreced.pos[0], (boitePreced.pos[1]+boitePreced.dim[1]+marge))
-                                listParagraphes.append(BoiteTexte(pos=nellePos))
-     
-                        for par in listParagraphes:
-                            par.afficher()
-
-                    for boiteP in listParagraphes:
-                        if pygame.mouse.get_pos() in boiteP:
-                            boiteP.saisir()
-                        
-
-                    if pygame.mouse.get_pos() in CreerPage:
-                        Ecriture(Titre, listParagraphes)
-
-            if event.type==pygame.QUIT:
-                continuer=False
 
 FenetrePrincipale()
